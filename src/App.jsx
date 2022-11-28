@@ -1,32 +1,129 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import { useState, useEffect } from 'react'
+import Header from './components/Header'
+import Filtros from './components/Filtros'
+import ListadoGastos from './components/ListadoGastos'
+import Modal from './components/Modal'
+import { generarId } from './helpers'
+import IconoNuevoGasto from './img/nuevo-gasto.svg'
+
+
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [presupuesto, setPresupuesto] = useState(
+    Number(localStorage.getItem('presupuesto')?? 0)
+  );
+  const [isValidPresupuesto, setIsValidPresupuesto] = useState(false);
+  const [modal , setModal] = useState(false)
+  const [animarModal, setAnimarModal] = useState(false)
+  const [gastos, setGastos] = useState(
+    localStorage.getItem('gastos') ? JSON.parse(localStorage.getItem('gastos')):[]
+  )
+  const [editarGasto, setEditarGasto] = useState({})
+  
+  const [filtro,setFiltro] = useState('')
+  const [gastosFiltrados,setGastosFiltrados] = useState([])
+  
+  useEffect(()=>{
+    if(Object.keys(editarGasto).length >0){
+      setModal(true)
+      setTimeout(()=>{
+          setAnimarModal(true)
+      },500)
+    }
+  },[editarGasto])
 
+  useEffect(()=>{
+    localStorage.setItem('presupuesto',presupuesto??0);
+  },[presupuesto])
+  useEffect(()=>{
+    localStorage.setItem('gastos',JSON.stringify(gastos) ?? []);
+  },[gastos])
+  useEffect(()=>{
+      if(filtro!=""){
+        const gastoFiltrados = gastos.filter(gasto=>gasto.categoria === filtro);
+        setGastosFiltrados(gastoFiltrados);
+      }
+  },[filtro]);
+  useEffect(()=>{
+      const presupuestoLS = Number(localStorage.getItem('presupuesto'))??0;
+      
+      if(presupuestoLS>0){
+        setIsValidPresupuesto(true);
+      }
+      
+  },[])
+  const handleNuevoGasto = ()=>{
+      setModal(true)
+      setTimeout(()=>{
+          setAnimarModal(true)
+      },500)
+      setEditarGasto({})
+  }
+  const guardarGasto = gasto=>{
+    if(gasto.id){
+      const gastoActualizado = gastos.map(gastoState => gastoState.id ===
+        gasto.id?gasto:gastoState)
+        setGastos(gastoActualizado)
+        setEditarGasto({})
+    }
+    else{
+      gasto.id = generarId();
+      gasto.fecha = Date.now();
+      setGastos([...gastos,gasto])
+    }
+
+    setAnimarModal(false)
+    setTimeout(()=>{       setModal(false) },500)
+  }
+  const eliminarGasto = id=>{
+      const gastosActualizados = gastos.filter(gasto=>gasto.id !== id);
+      setGastos(gastosActualizados);
+  }
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+    <div className={modal?'fijar':''}>
+      <Header
+        gastos ={gastos}
+        presupuesto = {presupuesto}
+        setGastos = {setGastos}
+        setPresupuesto = {setPresupuesto}
+        isValidPresupuesto = {isValidPresupuesto}
+        setIsValidPresupuesto = {setIsValidPresupuesto}
+      />
+
+      {isValidPresupuesto &&(
+        <>
+          <main>
+            <Filtros
+              filtro = {filtro}
+              setFiltro = {setFiltro}
+            />
+            <ListadoGastos
+              gastos = {gastos}
+              setEditarGasto = {setEditarGasto}
+              eliminarGasto = {eliminarGasto}
+              filtro = {filtro}
+              gastosFiltrados = {gastosFiltrados}
+            />
+          </main>
+          <div className='nuevo-gasto'>
+            <img
+              src={IconoNuevoGasto}
+              alt="Icono nuevo gasto"
+              onClick={handleNuevoGasto}
+            />
+          </div>
+        </>
+        )
+      }
+      {modal && <Modal
+
+        setModal = {setModal}
+        animarModal = {animarModal}
+        setAnimarModal = {setAnimarModal}
+        guardarGasto = {guardarGasto}
+        editarGasto = {editarGasto}
+        setEditarGasto = {setEditarGasto}
+      />}
     </div>
   )
 }
